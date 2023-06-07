@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmHome));
             label1 = new System.Windows.Forms.Label();
             txtSearch = new System.Windows.Forms.TextBox();
             dataGridView1 = new System.Windows.Forms.DataGridView();
@@ -39,6 +40,8 @@
             btnReset = new System.Windows.Forms.Button();
             chkMatchCase = new System.Windows.Forms.CheckBox();
             btnExport = new System.Windows.Forms.Button();
+            richTextBox1 = new System.Windows.Forms.RichTextBox();
+            chkRecipients = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             SuspendLayout();
             // 
@@ -46,7 +49,7 @@
             // 
             label1.AutoSize = true;
             label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            label1.Location = new System.Drawing.Point(252, 9);
+            label1.Location = new System.Drawing.Point(466, 9);
             label1.Name = "label1";
             label1.Size = new System.Drawing.Size(286, 20);
             label1.TabIndex = 0;
@@ -56,7 +59,7 @@
             // 
             txtSearch.Location = new System.Drawing.Point(193, 47);
             txtSearch.Name = "txtSearch";
-            txtSearch.Size = new System.Drawing.Size(308, 23);
+            txtSearch.Size = new System.Drawing.Size(392, 23);
             txtSearch.TabIndex = 2;
             // 
             // dataGridView1
@@ -65,7 +68,7 @@
             dataGridView1.Location = new System.Drawing.Point(13, 82);
             dataGridView1.Name = "dataGridView1";
             dataGridView1.RowTemplate.Height = 25;
-            dataGridView1.Size = new System.Drawing.Size(737, 529);
+            dataGridView1.Size = new System.Drawing.Size(942, 529);
             dataGridView1.TabIndex = 3;
             // 
             // btnGetAccess
@@ -82,7 +85,7 @@
             // btnClose
             // 
             btnClose.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            btnClose.Location = new System.Drawing.Point(639, 617);
+            btnClose.Location = new System.Drawing.Point(1067, 616);
             btnClose.Name = "btnClose";
             btnClose.Size = new System.Drawing.Size(111, 23);
             btnClose.TabIndex = 5;
@@ -92,7 +95,7 @@
             // 
             // btnSearch
             // 
-            btnSearch.Location = new System.Drawing.Point(594, 47);
+            btnSearch.Location = new System.Drawing.Point(799, 47);
             btnSearch.Name = "btnSearch";
             btnSearch.Size = new System.Drawing.Size(75, 23);
             btnSearch.TabIndex = 7;
@@ -119,7 +122,7 @@
             // 
             // btnReset
             // 
-            btnReset.Location = new System.Drawing.Point(675, 47);
+            btnReset.Location = new System.Drawing.Point(880, 47);
             btnReset.Name = "btnReset";
             btnReset.Size = new System.Drawing.Size(75, 23);
             btnReset.TabIndex = 11;
@@ -130,7 +133,7 @@
             // chkMatchCase
             // 
             chkMatchCase.AutoSize = true;
-            chkMatchCase.Location = new System.Drawing.Point(507, 49);
+            chkMatchCase.Location = new System.Drawing.Point(591, 50);
             chkMatchCase.Name = "chkMatchCase";
             chkMatchCase.Size = new System.Drawing.Size(88, 19);
             chkMatchCase.TabIndex = 12;
@@ -139,7 +142,7 @@
             // 
             // btnExport
             // 
-            btnExport.Location = new System.Drawing.Point(327, 617);
+            btnExport.Location = new System.Drawing.Point(537, 617);
             btnExport.Name = "btnExport";
             btnExport.Size = new System.Drawing.Size(134, 23);
             btnExport.TabIndex = 13;
@@ -147,11 +150,32 @@
             btnExport.UseVisualStyleBackColor = true;
             btnExport.Click += btnExport_Click;
             // 
+            // richTextBox1
+            // 
+            richTextBox1.Enabled = false;
+            richTextBox1.Location = new System.Drawing.Point(961, 200);
+            richTextBox1.Name = "richTextBox1";
+            richTextBox1.Size = new System.Drawing.Size(217, 284);
+            richTextBox1.TabIndex = 15;
+            richTextBox1.Text = resources.GetString("richTextBox1.Text");
+            // 
+            // chkRecipients
+            // 
+            chkRecipients.AutoSize = true;
+            chkRecipients.Location = new System.Drawing.Point(685, 50);
+            chkRecipients.Name = "chkRecipients";
+            chkRecipients.Size = new System.Drawing.Size(108, 19);
+            chkRecipients.TabIndex = 16;
+            chkRecipients.Text = "Recipients Only";
+            chkRecipients.UseVisualStyleBackColor = true;
+            // 
             // frmHome
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(762, 652);
+            ClientSize = new System.Drawing.Size(1190, 652);
+            Controls.Add(chkRecipients);
+            Controls.Add(richTextBox1);
             Controls.Add(btnExport);
             Controls.Add(chkMatchCase);
             Controls.Add(btnReset);
@@ -163,6 +187,7 @@
             Controls.Add(dataGridView1);
             Controls.Add(txtSearch);
             Controls.Add(label1);
+            Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
             Name = "frmHome";
             Text = "Home";
@@ -185,5 +210,7 @@
         private System.Windows.Forms.Button btnReset;
         private System.Windows.Forms.CheckBox chkMatchCase;
         private System.Windows.Forms.Button btnExport;
+        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.CheckBox chkRecipients;
     }
 }

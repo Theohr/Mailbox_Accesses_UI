@@ -5,7 +5,12 @@
     <TargetFramework>net5.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>icons8-mailbox-48.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icons8-mailbox-48.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Cake.Powershell" Version="2.0.0" />

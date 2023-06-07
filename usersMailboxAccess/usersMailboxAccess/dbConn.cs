@@ -13,7 +13,8 @@ namespace usersMailboxAccess
 {
     internal class dbConn
     {
-        public static string SQL_CONNECT = @"Data Source=db_host;Initial Catalog=mailboxes;Integrated Security=True";
+        //public static string SQL_CONNECT = @"Data Source=IOLNBTHNEW\SQLEXPRESS01;Initial Catalog=mailboxes;Integrated Security=True";
+        public static string SQL_CONNECT = @"Data Source=server;Initial Catalog=mailboxes;Integrated Security=True";
         public static SqlConnection conn = new SqlConnection();
         public static SqlCommand sqlCmd = new SqlCommand();
         public static SqlDataReader sqlRdr;

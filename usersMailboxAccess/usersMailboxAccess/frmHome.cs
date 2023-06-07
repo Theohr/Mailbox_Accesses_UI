@@ -21,6 +21,8 @@ using System.IO;
 using Microsoft.VisualBasic;
 using System.ServiceModel.Syndication;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Windows.Forms.VisualStyles;
+using System.Text.RegularExpressions;
 
 namespace usersMailboxAccess
 {
@@ -28,8 +30,10 @@ namespace usersMailboxAccess
     {
         // Create the main DataTable
         DataTable dataTable = new DataTable();
+        DataTable dataTableTmp = new DataTable();
         string userType = "";
         string identityType = "";
+        string username = Environment.UserName;
 
         public frmHome()
         {
@@ -38,12 +42,14 @@ namespace usersMailboxAccess
 
         private void btnGetAccess_Click(object sender, EventArgs e)
         {
+            dataTable.Rows.Clear();
+
             // Disable the get access button so it wont mess up the process
             btnGetAccess.Enabled = false;
 
             //insert users into database after retreive
             insertUsers();
-             
+
             //insert groups into database after retreive
             insertGroups();
 
@@ -73,26 +79,67 @@ namespace usersMailboxAccess
             cmbSearchCat.DropDownStyle = ComboBoxStyle.DropDownList;
 
             // create datatable columns
-            dataTable.Columns.Add("UserAcc");
-            dataTable.Columns.Add("IdentityAcc");
+            dataTable.Columns.Add("UserAccount");
+            dataTable.Columns.Add("Mailbox");
             dataTable.Columns.Add("AccessRights");
             dataTable.Columns.Add("InheritanceType");
 
+            // create datatable columns
+            dataTableTmp.Columns.Add("UserAccount");
+            dataTableTmp.Columns.Add("Mailbox");
+            dataTableTmp.Columns.Add("AccessRights");
+            dataTableTmp.Columns.Add("InheritanceType");
+
             // create combobox items
-            cmbSearchCat.Items.Add("UserAcc");
-            cmbSearchCat.Items.Add("IdentityAcc");
+            cmbSearchCat.Items.Add("Mailbox");
+            cmbSearchCat.Items.Add("UserAccount");
             cmbSearchCat.Items.Add("AccessRights");
-            cmbSearchCat.Items.Add("InheritanceType");
+            //cmbSearchCat.Items.Add("InheritanceType");
 
             cmbSearchCat.SelectedIndex = 0;
 
             // allow multiple row selection for export purposes
-            dataGridView1.MultiSelect = true;
-            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            //dataGridView1.MultiSelect = true;
+            //dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
+            if (username != "theodoros.h" && username != "aristos.a" && username != "vrionis.n")
+            {
+                btnGetAccess.Visible = false;
+            }
 
             loadData();
 
+            gotGet();
+
             dataGridView1.DataSource = dataTable;
+
+            dataGridView1.Columns["InheritanceType"].Visible = false;
+
+            dataGridView1.Columns[0].Width = 200;
+            dataGridView1.Columns[1].Width = 430;
+            dataGridView1.Columns[2].Width = 175;
+
+            dataGridView1.Columns[0].ReadOnly = true;
+            dataGridView1.Columns[1].ReadOnly = true;
+            dataGridView1.Columns[2].ReadOnly = true;
+            dataGridView1.Columns[3].ReadOnly = true;
+
+            string[] unbulleted = richTextBox1.Lines;
+            string[] bulleted = new string[unbulleted.Length];
+
+            for (int i = 0; i < bulleted.Length; i++)
+            {
+                if (i > 0)
+                {
+                    bulleted[i] = "\u2022" + unbulleted[i];
+                }
+                else
+                {
+                    bulleted[i] = unbulleted[i];
+                }
+            }
+
+            richTextBox1.Lines = bulleted;
         }
 
         private void getAllAccessListData()
@@ -116,7 +163,7 @@ namespace usersMailboxAccess
 
             // give finalized datatable to datagrid and sort by user
             dataGridView1.DataSource = dataTable;
-            dataGridView1.Sort(dataGridView1.Columns["User"], ListSortDirection.Ascending);
+            dataGridView1.Sort(dataGridView1.Columns["UserAccount"], ListSortDirection.Ascending);
         }
 
         private void getFullAccessList()
@@ -124,7 +171,7 @@ namespace usersMailboxAccess
             // Powershell script that gets connects to exchange online with a certificate and gets all mailboxes with users who have full access on
             string scriptFullAccess = @"Set-ExecutionPolicy Unrestricted;
                             Import-Module ExchangeOnlineManagement
-                            Connect-ExchangeOnline -CertificateFilePath ""certPath"" -CertificatePassword (ConvertTo-SecureString -String ""certPass"" -AsPlainText -Force) -AppID ""certAppID"" -Organization ""certOrg""
+                            Connect-ExchangeOnline -CertificateFilePath ""C:\Temp\MailboxUsage.pfx"" -CertificatePassword (ConvertTo-SecureString -String ""certificate_pass"" -AsPlainText -Force) -AppID ""app_id_code"" -Organization "".onmicrosoft.com""
                             Get-Mailbox -ResultSize ""Unlimited"" | Get-MailboxPermission | where { ($_.AccessRights -eq ""FullAccess"") }";
 
             // start the runspace
@@ -143,8 +190,8 @@ namespace usersMailboxAccess
                 foreach (var mailboxAccessRow in mailboxAccessData)
                 {
                     var row = dataTable.NewRow();
-                    row["UserAcc"] = mailboxAccessRow.Properties["User"].Value.ToString();
-                    row["IdentityAcc"] = mailboxAccessRow.Properties["Identity"].Value.ToString();
+                    row["UserAccount"] = mailboxAccessRow.Properties["User"].Value.ToString();
+                    row["Mailbox"] = mailboxAccessRow.Properties["Identity"].Value.ToString();
                     row["AccessRights"] = mailboxAccessRow.Properties["AccessRights"].Value.ToString();
                     row["InheritanceType"] = mailboxAccessRow.Properties["InheritanceType"].Value.ToString();
                     dataTable.Rows.Add(row);
@@ -157,7 +204,7 @@ namespace usersMailboxAccess
             // Powershell script that gets connects to exchange online with a certificate and gets all mailboxes with users who have send as access
             string scriptSendAs = @"Set-ExecutionPolicy Unrestricted;
                             Import-Module ExchangeOnlineManagement
-                            Connect-ExchangeOnline -CertificateFilePath ""certPath"" -CertificatePassword (ConvertTo-SecureString -String ""certPass"" -AsPlainText -Force) -AppID ""certAppID"" -Organization ""certOrg""
+                            Connect-ExchangeOnline -CertificateFilePath ""C:\Temp\MailboxUsage.pfx"" -CertificatePassword (ConvertTo-SecureString -String ""certificate_pass"" -AsPlainText -Force) -AppID ""app_id"" -Organization ""orgorg.onmicrosoft.com""
                             Get-Mailbox -resultsize unlimited | Get-RecipientPermission| where {($_.trustee -ne ""NT AUTHORITY\SELF"")}";
 
             // start the runspace
@@ -174,8 +221,8 @@ namespace usersMailboxAccess
                 foreach (var mailboxAccessRow in mailboxAccessData)
                 {
                     var row = dataTable.NewRow();
-                    row["UserAcc"] = mailboxAccessRow.Properties["Trustee"].Value.ToString();
-                    row["IdentityAcc"] = mailboxAccessRow.Properties["Identity"].Value.ToString();
+                    row["UserAccount"] = mailboxAccessRow.Properties["Trustee"].Value.ToString();
+                    row["Mailbox"] = mailboxAccessRow.Properties["Identity"].Value.ToString();
                     row["AccessRights"] = mailboxAccessRow.Properties["AccessRights"].Value.ToString();
                     row["InheritanceType"] = "";
                     dataTable.Rows.Add(row);
@@ -188,7 +235,7 @@ namespace usersMailboxAccess
             // Powershell script that gets connects to exchange online with a certificate and gets all mailboxes with users who have send on behalf access
             string scriptSendOnBehalf = @"Set-ExecutionPolicy Unrestricted;
                             Import-Module ExchangeOnlineManagement
-                            Connect-ExchangeOnline -CertificateFilePath ""certPath"" -CertificatePassword (ConvertTo-SecureString -String ""certPass"" -AsPlainText -Force) -AppID ""certAppID"" -Organization ""certOrg""
+                            Connect-ExchangeOnline -CertificateFilePath ""C:\Temp\MailboxUsage.pfx"" -CertificatePassword (ConvertTo-SecureString -String ""certificate_pass"" -AsPlainText -Force) -AppID ""app_id"" -Organization ""org.onmicrosoft.com""
                             Get-Mailbox | where {$_.GrantSendOnBehalfTo -ne $null} | select DisplayName,Name,Alias,UserPrincipalName,PrimarySmtpAddress,@{l='SendOnBehalfOf';e={$_.GrantSendOnBehalfTo -join "";""}}";
 
             // start the runspace
@@ -214,8 +261,8 @@ namespace usersMailboxAccess
                         if (idk != ";")
                         {
                             var row = dataTable.NewRow();
-                            row["UserAcc"] = idk;
-                            row["IdentityAcc"] = mailboxAccessRow.Properties["Name"].Value.ToString();
+                            row["UserAccount"] = idk;
+                            row["Mailbox"] = mailboxAccessRow.Properties["Name"].Value.ToString();
                             row["AccessRights"] = "SendOnBehalf";
                             row["InheritanceType"] = "";
                             dataTable.Rows.Add(row);
@@ -230,7 +277,7 @@ namespace usersMailboxAccess
             // Powershell script that gets connects to exchange online with a certificate and gets all mailboxes that have forwarding access and to which groups/users
             string scriptForwarding = @"Set-ExecutionPolicy Unrestricted;
                             Import-Module ExchangeOnlineManagement
-                            Connect-ExchangeOnline -CertificateFilePath ""certPath"" -CertificatePassword (ConvertTo-SecureString -String ""certPass"" -AsPlainText -Force) -AppID ""certAppID"" -Organization ""certOrg""
+                            Connect-ExchangeOnline -CertificateFilePath ""C:\Temp\MailboxUsage.pfx"" -CertificatePassword (ConvertTo-SecureString -String ""certificate_pass"" -AsPlainText -Force) -AppID ""app_id"" -Organization ""org.onmicrosoft.com""
                             Get-Mailbox -ResultSize Unlimited | Where {($_.ForwardingAddress -ne $Null) -or ($_.ForwardingsmtpAddress -ne $Null)} | Select DisplayName, Name, ForwardingAddress,ForwardingsmtpAddress, DeliverToMailboxAndForward";
 
             //start runspace
@@ -256,8 +303,8 @@ namespace usersMailboxAccess
                     else if (mailboxAccessRow.Properties["ForwardingAddress"].Value is not null && mailboxAccessRow.Properties["ForwardingSmtpAddress"].Value is not null)
                     {
                         var row = dataTable.NewRow();
-                        row["UserAcc"] = mailboxAccessRow.Properties["ForwardingAddress"].Value.ToString() + ", " + mailboxAccessRow.Properties["ForwardingSmtpAddress"].Value.ToString();
-                        row["IdentityAcc"] = mailboxAccessRow.Properties["Name"].Value.ToString();
+                        row["UserAccount"] = mailboxAccessRow.Properties["ForwardingAddress"].Value.ToString() + ", " + mailboxAccessRow.Properties["ForwardingSmtpAddress"].Value.ToString();
+                        row["Mailbox"] = mailboxAccessRow.Properties["Name"].Value.ToString();
                         row["AccessRights"] = "Forwarding";
 
                         bool test = (bool)mailboxAccessRow.Properties["DeliverToMailboxAndForward"].Value;
@@ -278,13 +325,13 @@ namespace usersMailboxAccess
                         var row = dataTable.NewRow();
                         if (mailboxAccessRow.Properties["ForwardingAddress"].Value is not null)
                         {
-                            row["UserAcc"] = mailboxAccessRow.Properties["ForwardingAddress"].Value.ToString();
+                            row["UserAccount"] = mailboxAccessRow.Properties["ForwardingAddress"].Value.ToString();
                         }
                         else if (mailboxAccessRow.Properties["ForwardingSmtpAddress"].Value is not null)
                         {
-                            row["UserAcc"] = mailboxAccessRow.Properties["ForwardingSmtpAddress"].Value.ToString();
+                            row["UserAccount"] = mailboxAccessRow.Properties["ForwardingSmtpAddress"].Value.ToString();
                         }
-                        row["IdentityAcc"] = mailboxAccessRow.Properties["Name"].Value.ToString();
+                        row["Mailbox"] = mailboxAccessRow.Properties["Name"].Value.ToString();
                         row["AccessRights"] = "Forwarding";
 
                         bool test = (bool)mailboxAccessRow.Properties["DeliverToMailboxAndForward"].Value;
@@ -310,7 +357,7 @@ namespace usersMailboxAccess
             // and if there are other sgs/dls in the specific group nest loop and get the users from those groups also and print a list of the sg/dl and its users
             string scriptSGMembers = @"Set-ExecutionPolicy Unrestricted;
                             Import-Module ExchangeOnlineManagement
-                            Connect-ExchangeOnline -CertificateFilePath ""certPath"" -CertificatePassword (ConvertTo-SecureString -String ""certPass"" -AsPlainText -Force) -AppID ""certAppID"" -Organization ""certOrg""
+                            Connect-ExchangeOnline -CertificateFilePath ""C:\Temp\MailboxUsage.pfx"" -CertificatePassword (ConvertTo-SecureString -String ""certificate_pass"" -AsPlainText -Force) -AppID ""app_id"" -Organization ""org.onmicrosoft.com""
                             $Groups = Get-Group -ResultSize Unlimited | Select DisplayName, Identity, ManagedBy, GroupType, RecipientTypeDetails, RecipientType,PrimarySmtpAddress, @{l='Members';e={$_.Members -join "";""}} | where { ($_.DisplayName -ne """") }
                             $global = """"
                             # Define a function to recursively get group members
@@ -359,7 +406,7 @@ namespace usersMailboxAccess
 
                         foreach (DataRow ifExistsRow in dataTable.Rows)
                         {
-                            if (ifExistsRow["User"].ToString().Contains(mailboxAccessRow.Properties["PrimarySmtpAddress"].Value.ToString()) && ifExistsRow["Identity"].ToString() == groupName)
+                            if (ifExistsRow["UserAccount"].ToString().Contains(mailboxAccessRow.Properties["PrimarySmtpAddress"].Value.ToString()) && ifExistsRow["Mailbox"].ToString() == groupName)
                             {
                                 found = true;
                                 goto goHere;
@@ -375,8 +422,8 @@ namespace usersMailboxAccess
                         else
                         {
                             var row = dataTable.NewRow();
-                            row["UserAcc"] = mailboxAccessRow.Properties["Name"].Value.ToString();
-                            row["IdentityAcc"] = groupName;
+                            row["UserAccount"] = mailboxAccessRow.Properties["Name"].Value.ToString();
+                            row["Mailbox"] = groupName;
                             row["AccessRights"] = "GroupMember";
                             row["InheritanceType"] = "";
                             dataTable.Rows.Add(row);
@@ -401,7 +448,7 @@ namespace usersMailboxAccess
             {
                 string searchValue = txtSearch.Text;
 
-                dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+                //dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
                 // create a new filtered rows array
                 DataRow[] filteredRows;
@@ -409,22 +456,22 @@ namespace usersMailboxAccess
                 // create a new temp datatable with filtered rows
                 DataTable tempSearch = new DataTable();
 
-                tempSearch.Columns.Add("UserAcc");
-                tempSearch.Columns.Add("IdentityAcc");
+                tempSearch.Columns.Add("UserAccount");
+                tempSearch.Columns.Add("Mailbox");
                 tempSearch.Columns.Add("AccessRights");
                 tempSearch.Columns.Add("InheritanceType");
 
                 // check if match case is checked 
-                if (chkMatchCase.Checked == true)
+                if (chkMatchCase.Checked == true && chkRecipients.Checked == true)
                 {
                     // if it is depends on combo box search exactly what the user inserted in textbox
                     if (cmbSearchCat.SelectedIndex == 0)
                     {
-                        filteredRows = dataTable.Select("UserAcc = '" + searchValue + "'");
+                        filteredRows = dataTable.Select("Mailbox = '" + searchValue + "' AND (AccessRights = 'GroupMembers' OR AccessRights = 'MailboxForwardingToGroup')");
                     }
                     else if (cmbSearchCat.SelectedIndex == 1)
                     {
-                        filteredRows = dataTable.Select("IdentityAcc = '" + searchValue + "'");
+                        filteredRows = dataTable.Select("UserAccount = '" + searchValue + "' AND (AccessRights = 'GroupMembers' OR AccessRights = 'MailboxForwardingToGroup')");
                     }
                     else if (cmbSearchCat.SelectedIndex == 2)
                     {
@@ -435,16 +482,56 @@ namespace usersMailboxAccess
                         filteredRows = dataTable.Select("InheritanceType = '" + searchValue + "'");
                     }
                 }
+                else if (chkMatchCase.Checked == true && chkRecipients.Checked == false)
+                {
+                    // if it is depends on combo box search exactly what the user inserted in textbox
+                    if (cmbSearchCat.SelectedIndex == 0)
+                    {
+                        filteredRows = dataTable.Select("Mailbox = '" + searchValue + "'");
+                    }
+                    else if (cmbSearchCat.SelectedIndex == 1)
+                    {
+                        filteredRows = dataTable.Select("UserAccount = '" + searchValue + "'");
+                    }
+                    else if (cmbSearchCat.SelectedIndex == 2)
+                    {
+                        filteredRows = dataTable.Select("AccessRights = '" + searchValue + "'");
+                    }
+                    else
+                    {
+                        filteredRows = dataTable.Select("InheritanceType = '" + searchValue + "'");
+                    }
+                }
+                else if (chkMatchCase.Checked == false && chkRecipients.Checked == true)
+                {
+                    // if it is depends on combo box search anything that contains what the user inserted in textbox
+                    if (cmbSearchCat.SelectedIndex == 0)
+                    {
+                        filteredRows = dataTable.Select("Mailbox LIKE '%" + searchValue + "%' AND (AccessRights = 'GroupMembers' OR AccessRights = 'MailboxForwardingToGroup')");
+                    }
+                    else if (cmbSearchCat.SelectedIndex == 1)
+                    {
+                        filteredRows = dataTable.Select("UserAccount LIKE '%" + searchValue + "%' AND (AccessRights = 'GroupMembers' OR AccessRights = 'MailboxForwardingToGroup')");
+                    }
+                    else if (cmbSearchCat.SelectedIndex == 2)
+                    {
+                        filteredRows = dataTable.Select("AccessRights LIKE '%" + searchValue + "%'");
+                    }
+                    else
+                    {
+                        filteredRows = dataTable.Select("InheritanceType LIKE '%" + searchValue + "%'");
+                    }
+                }
                 else
                 {
                     // if it is depends on combo box search anything that contains what the user inserted in textbox
                     if (cmbSearchCat.SelectedIndex == 0)
                     {
-                        filteredRows = dataTable.Select("UserAcc LIKE '%" + searchValue + "%'");
+                        filteredRows = dataTable.Select("Mailbox LIKE '%" + searchValue + "%'");
                     }
                     else if (cmbSearchCat.SelectedIndex == 1)
                     {
-                        filteredRows = dataTable.Select("IdentityAcc LIKE '%" + searchValue + "%'");
+                        filteredRows = dataTable.Select("UserAccount LIKE '%" + searchValue + "%'");
                     }
                     else if (cmbSearchCat.SelectedIndex == 2)
                     {
@@ -460,8 +547,8 @@ namespace usersMailboxAccess
                 foreach (var dr in filteredRows)
                 {
                     var row = tempSearch.NewRow();
-                    row["UserAcc"] = dr.ItemArray[0];
-                    row["IdentityAcc"] = dr.ItemArray[1];
+                    row["UserAccount"] = dr.ItemArray[0];
+                    row["Mailbox"] = dr.ItemArray[1];
                     row["AccessRights"] = dr.ItemArray[2];
                     row["InheritanceType"] = dr.ItemArray[3];
                     tempSearch.Rows.Add(row);
@@ -489,8 +576,8 @@ namespace usersMailboxAccess
             DataRow datarow = null;
             DataTable expDT = new DataTable();
 
-            expDT.Columns.Add("User");
-            expDT.Columns.Add("Identity");
+            expDT.Columns.Add("UserAccount");
+            expDT.Columns.Add("Mailbox");
             expDT.Columns.Add("AccessRights");
             expDT.Columns.Add("InheritanceType");
 
@@ -503,12 +590,19 @@ namespace usersMailboxAccess
                     {
                         datarow = ((DataRowView)row.DataBoundItem).Row;
                         expDT.ImportRow(datarow);
+                        i += 1;
                     }
                     catch
                     {
 
                     }
                 }
+            }
+
+            if (i == 0)
+            {
+                MessageBox.Show("Please select full rows to export into CSV.", "Important Message!", MessageBoxButtons.OK);
+                return;
             }
 
             // open file save dialog box
@@ -532,7 +626,7 @@ namespace usersMailboxAccess
             // Powershell script that gets connects to exchange online with a certificate and gets all mailboxes with users who have full access on
             string scriptFullAccess = @"Set-ExecutionPolicy Unrestricted;
                             Import-Module ExchangeOnlineManagement
-                            Connect-ExchangeOnline -CertificateFilePath ""certPath"" -CertificatePassword (ConvertTo-SecureString -String ""certPass"" -AsPlainText -Force) -AppID ""certAppID"" -Organization ""certOrg""
+                            Connect-ExchangeOnline -CertificateFilePath ""C:\Temp\MailboxUsage.pfx"" -CertificatePassword (ConvertTo-SecureString -String ""certificate_pass"" -AsPlainText -Force) -AppID ""app_id"" -Organization ""org.onmicrosoft.com""
                             Get-Mailbox -ResultSize ""Unlimited"" | Select DisplayName, Name, PrimarySmtpAddress, RecipientType | Where {($_.RecipientType -eq ""UserMailbox"")}";
 
             // start the runspace
@@ -552,11 +646,18 @@ namespace usersMailboxAccess
                 {
                     string userExists = "";
                     string emailExists = "";
+                    string userName = mailboxAccessRow.Properties["Name"].Value.ToString();
+                    //bool containsNumeric = Regex.IsMatch(userName, @"\d");
+
+                    //if (containsNumeric)
+                    //{
+                    //    userName = mailboxAccessRow.Properties["DisplayName"].Value.ToString();
+                    //}
 
                     // check if uer exists in table users
                     try
                     {
-                        string SQL = "SELECT * FROM mailboxes.dbo.users WHERE userName ='" + mailboxAccessRow.Properties["Name"].Value.ToString() + "'";
+                        string SQL = "SELECT * FROM mailboxes.dbo.users WHERE userName ='" + userName + "'";
                         dbConn.sqlCmd.Connection = dbConn.conn;
                         dbConn.conn.Close();
                         dbConn.conn.Open();
@@ -565,7 +666,7 @@ namespace usersMailboxAccess
 
                         if (dbConn.sqlRdr.HasRows)
                         {
-                            while(dbConn.sqlRdr.Read())
+                            while (dbConn.sqlRdr.Read())
                             {
                                 userExists = dbConn.sqlRdr.GetValue(dbConn.sqlRdr.GetOrdinal("userName")).ToString();
                                 emailExists = dbConn.sqlRdr.GetValue(dbConn.sqlRdr.GetOrdinal("userEmail")).ToString();
@@ -586,7 +687,8 @@ namespace usersMailboxAccess
 
                         try
                         {
-                            dbConn.sqlCmd.Parameters.AddWithValue("@userName", mailboxAccessRow.Properties["Name"].Value.ToString());
+
+                            dbConn.sqlCmd.Parameters.AddWithValue("@userName", userName);
                         }
                         catch
                         {
@@ -620,7 +722,7 @@ namespace usersMailboxAccess
                     {
                         if (emailExists != mailboxAccessRow.Properties["PrimarySmtpAddress"].Value.ToString())
                         {
-                            string SQL = "UPDATE mailboxes.dbo.users SET userEmail=@userEmail WHERE userName = '" + mailboxAccessRow.Properties["Name"].Value.ToString() + "'";
+                            string SQL = "UPDATE mailboxes.dbo.users SET userEmail=@userEmail WHERE userName = '" + userName + "'";
 
                             dbConn.sqlCmd.Parameters.Clear();
 
@@ -657,7 +759,7 @@ namespace usersMailboxAccess
             // Powershell script that gets connects to exchange online with a certificate and gets all mailboxes with users who have full access on
             string scriptFullAccess = @"Set-ExecutionPolicy Unrestricted;
                             Import-Module ExchangeOnlineManagement
-                            Connect-ExchangeOnline -CertificateFilePath ""certPath"" -CertificatePassword (ConvertTo-SecureString -String ""certPass"" -AsPlainText -Force) -AppID ""certAppID"" -Organization ""certOrg""
+                            Connect-ExchangeOnline -CertificateFilePath ""C:\Temp\MailboxUsage.pfx"" -CertificatePassword (ConvertTo-SecureString -String ""certificate_pass"" -AsPlainText -Force) -AppID ""app_id"" -Organization ""org.onmicrosoft.com""
                             Get-Group -ResultSize Unlimited | Select DisplayName, Name, WindowsEmailAddress";
 
             // start the runspace
@@ -799,13 +901,13 @@ namespace usersMailboxAccess
 
                 if (row["AccessRights"].ToString() != "Forwarding")
                 {
-                    userID = getUserID(row["User"].ToString(), 0);
-                    groupID = getGroupID(row["Identity"].ToString(), 0);
+                    userID = getUserID(row["UserAccount"].ToString(), 0);
+                    groupID = getGroupID(row["Mailbox"].ToString(), 0);
                 }
                 else
                 {
-                    userID = getUserID(row["Identity"].ToString(), 0);
-                    groupID = getGroupID(row["User"].ToString(), 0);
+                    userID = getUserID(row["Mailbox"].ToString(), 0);
+                    groupID = getGroupID(row["UserAccount"].ToString(), 0);
                 }
 
                 // depends on the access of each row insert into the appropriate table
@@ -1143,15 +1245,24 @@ namespace usersMailboxAccess
 
         private void loadFullAccess()
         {
-            string SQL = "SELECT CASE WHEN (fullaccess.userType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE fullaccess.user_ID = users.userID and userName is not null) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE fullaccess.user_ID = groups.groupID and groupName is not null) END as UserAcc, CASE WHEN (fullaccess.identityType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE fullaccess.identity_ID = users.userID) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE fullaccess.identity_ID = groups.groupID) END as IdentityAcc, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE fullaccess.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.fullaccess WHERE user_ID <> 0 and identity_ID <> 0";
+            string SQL = "";
+
+            if (username != "theodoros.h" && username != "arisadmin" && username != "vrionis.n")
+            {
+                SQL = "SELECT CASE WHEN (fullaccess.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE fullaccess.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE fullaccess.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (fullaccess.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE fullaccess.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE fullaccess.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE fullaccess.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.fullaccess WHERE user_ID NOT IN (0, 242, 109, 52, 32, 256, 142, 28, 106) and identity_ID <> 0";
+            }
+            else
+            {
+                SQL = "SELECT CASE WHEN (fullaccess.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE fullaccess.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE fullaccess.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (fullaccess.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE fullaccess.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE fullaccess.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE fullaccess.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.fullaccess WHERE user_ID <> 0 and identity_ID <> 0";
+            }
 
             DataTable dtFullAccess = dbConn.retrieveDB(SQL);
 
             foreach (DataRow row in dtFullAccess.Rows)
             {
                 var rowAuth = dataTable.NewRow();
-                rowAuth["UserAcc"] = row["UserAcc"];
-                rowAuth["IdentityAcc"] = row["IdentityAcc"];
+                rowAuth["UserAccount"] = row["UserAccount"];
+                rowAuth["Mailbox"] = row["Mailbox"];
                 rowAuth["AccessRights"] = row["AccessRights"];
                 rowAuth["InheritanceType"] = row["InheritanceType"];
                 dataTable.ImportRow(row);
@@ -1160,15 +1271,24 @@ namespace usersMailboxAccess
 
         private void loadSendAs()
         {
-            string SQL = "SELECT CASE WHEN (sendas.userType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE sendas.user_ID = users.userID and userName is not null)\r\nELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE sendas.user_ID = groups.groupID and groupName is not null) END as UserAcc, CASE WHEN (sendas.identityType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE sendas.identity_ID = users.userID) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE sendas.identity_ID = groups.groupID) END as IdentityAcc, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE sendas.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.sendas WHERE user_ID <> 0 and identity_ID <> 0";
-            
+            string SQL = "";
+
+            if (username != "theodoros.h" && username != "arisadmin" && username != "vrionis.n")
+            {
+                SQL = "SELECT CASE WHEN (sendas.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendas.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendas.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (sendas.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendas.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendas.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE sendas.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.sendas WHERE user_ID NOT IN (0, 242, 109, 52, 32, 256, 142, 28, 106) and identity_ID <> 0";
+            }
+            else
+            {
+                SQL = "SELECT CASE WHEN (sendas.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendas.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendas.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (sendas.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendas.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendas.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE sendas.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.sendas WHERE user_ID <> 0 and identity_ID <> 0";
+            }
+
             DataTable dtFullAccess = dbConn.retrieveDB(SQL);
 
             foreach (DataRow row in dtFullAccess.Rows)
             {
                 var rowAuth = dataTable.NewRow();
-                rowAuth["UserAcc"] = row["UserAcc"];
-                rowAuth["IdentityAcc"] = row["IdentityAcc"];
+                rowAuth["UserAccount"] = row["UserAccount"];
+                rowAuth["Mailbox"] = row["Mailbox"];
                 rowAuth["AccessRights"] = row["AccessRights"];
                 rowAuth["InheritanceType"] = row["InheritanceType"];
                 dataTable.ImportRow(row);
@@ -1177,15 +1297,24 @@ namespace usersMailboxAccess
 
         private void loadSendOnBehalf()
         {
-            string SQL = "SELECT CASE WHEN (sendonbehalf.userType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE sendonbehalf.user_ID = users.userID and userName is not null) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE sendonbehalf.user_ID = groups.groupID and groupName is not null) END as UserAcc, CASE WHEN (sendonbehalf.identityType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE sendonbehalf.identity_ID = users.userID) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE sendonbehalf.identity_ID = groups.groupID) END as IdentityAcc, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE sendonbehalf.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.sendonbehalf WHERE user_ID <> 0 and identity_ID <> 0";
+            string SQL = "";
+
+            if (username != "theodoros.h" && username != "arisadmin" && username != "vrionis.n")
+            {
+                SQL = "SELECT CASE WHEN (sendonbehalf.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendonbehalf.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendonbehalf.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (sendonbehalf.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendonbehalf.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendonbehalf.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE sendonbehalf.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.sendonbehalf WHERE user_ID NOT IN (0, 242, 109, 52, 32, 256, 142, 28, 106) and identity_ID <> 0";
+            }
+            else
+            {
+                SQL = "SELECT CASE WHEN (sendonbehalf.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendonbehalf.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendonbehalf.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (sendonbehalf.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE sendonbehalf.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE sendonbehalf.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE sendonbehalf.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.sendonbehalf WHERE user_ID <> 0 and identity_ID <> 0";
+            }
 
             DataTable dtFullAccess = dbConn.retrieveDB(SQL);
 
             foreach (DataRow row in dtFullAccess.Rows)
             {
                 var rowAuth = dataTable.NewRow();
-                rowAuth["UserAcc"] = row["UserAcc"];
-                rowAuth["IdentityAcc"] = row["IdentityAcc"];
+                rowAuth["UserAccount"] = row["UserAccount"];
+                rowAuth["Mailbox"] = row["Mailbox"];
                 rowAuth["AccessRights"] = row["AccessRights"];
                 rowAuth["InheritanceType"] = row["InheritanceType"];
                 dataTable.ImportRow(row);
@@ -1194,15 +1323,24 @@ namespace usersMailboxAccess
 
         private void loadForwarding()
         {
-            string SQL = "SELECT CASE WHEN (forwarding.userType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE forwarding.user_ID = users.userID and userName is not null) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE forwarding.user_ID = groups.groupID and groupName is not null) END as UserAcc, CASE WHEN (forwarding.identityType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE forwarding.identity_ID = users.userID) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE forwarding.identity_ID = groups.groupID) END as IdentityAcc, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE forwarding.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.forwarding WHERE user_ID <> 0 and identity_ID <> 0";
-            
+            string SQL = "";
+
+            if (username != "theodoros.h" && username != "arisadmin"  && username != "vrionis.n")
+            {
+                SQL = "SELECT CASE WHEN (forwarding.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE forwarding.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE forwarding.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (forwarding.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE forwarding.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE forwarding.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE forwarding.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.forwarding WHERE  user_ID NOT IN (0, 242, 109, 52, 32, 256, 142, 28, 106) and identity_ID <> 0";
+            }
+            else
+            {
+                SQL = "SELECT CASE WHEN (forwarding.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE forwarding.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE forwarding.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (forwarding.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE forwarding.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE forwarding.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE forwarding.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.forwarding WHERE user_ID <> 0 and identity_ID <> 0";
+            }
+
             DataTable dtFullAccess = dbConn.retrieveDB(SQL);
 
             foreach (DataRow row in dtFullAccess.Rows)
             {
                 var rowAuth = dataTable.NewRow();
-                rowAuth["UserAcc"] = row["UserAcc"];
-                rowAuth["IdentityAcc"] = row["IdentityAcc"];
+                rowAuth["UserAccount"] = row["UserAccount"];
+                rowAuth["Mailbox"] = row["Mailbox"];
                 rowAuth["AccessRights"] = row["AccessRights"];
                 rowAuth["InheritanceType"] = row["InheritanceType"];
                 dataTable.ImportRow(row);
@@ -1211,19 +1349,55 @@ namespace usersMailboxAccess
 
         private void loadGroupMembers()
         {
-            string SQL = "SELECT CASE WHEN (groupmembers.userType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE groupmembers.user_ID = users.userID and userName is not null) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE groupmembers.user_ID = groups.groupID and groupName is not null) END as UserAcc, CASE WHEN (groupmembers.identityType = 'User') THEN (SELECT userName FROM mailboxes.dbo.users WHERE groupmembers.identity_ID = users.userID) ELSE (SELECT groupName FROM mailboxes.dbo.groups WHERE groupmembers.identity_ID = groups.groupID) END as IdentityAcc, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE groupmembers.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.groupmembers WHERE user_ID <> 0 and identity_ID <> 0";
-            
+            string SQL = "";
+
+            if (username != "theodoros.h" && username != "arisadmin" && username != "vrionis.n")
+            {
+                SQL = "SELECT CASE WHEN (groupmembers.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE groupmembers.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE groupmembers.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (groupmembers.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE groupmembers.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE groupmembers.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE groupmembers.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.groupmembers WHERE user_ID NOT IN (0, 242, 109, 52, 32, 256, 142, 28, 106) and identity_ID <> 0";
+            }
+            else
+            {
+                SQL = "SELECT CASE WHEN (groupmembers.userType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE groupmembers.user_ID = users.userID and userName is not null) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE groupmembers.user_ID = groups.groupID and groupName is not null) END as UserAccount, CASE WHEN (groupmembers.identityType = 'User') THEN (SELECT userEmail FROM mailboxes.dbo.users WHERE groupmembers.identity_ID = users.userID) ELSE (SELECT groupEmail FROM mailboxes.dbo.groups WHERE groupmembers.identity_ID = groups.groupID) END as Mailbox, (SELECT accessRightsName FROM mailboxes.dbo.accessrights WHERE groupmembers.accessRights_ID = accessrights.accessRightsID) as AccessRights, inheritanceType FROM mailboxes.dbo.groupmembers WHERE user_ID <> 0 and identity_ID <> 0";
+            }
+
             DataTable dtFullAccess = dbConn.retrieveDB(SQL);
 
             foreach (DataRow row in dtFullAccess.Rows)
             {
                 var rowAuth = dataTable.NewRow();
-                rowAuth["UserAcc"] = row["UserAcc"];
-                rowAuth["IdentityAcc"] = row["IdentityAcc"];
+                rowAuth["UserAccount"] = row["UserAccount"];
+                rowAuth["Mailbox"] = row["Mailbox"];
                 rowAuth["AccessRights"] = row["AccessRights"];
                 rowAuth["InheritanceType"] = row["InheritanceType"];
                 dataTable.ImportRow(row);
             }
+        }
+
+        private void gotGet()
+        {
+            foreach (DataRow rowForwarding in dataTable.Rows)
+            {
+                if (rowForwarding["AccessRights"].ToString() == "Forwarding")
+                {
+                    string dlGroup = rowForwarding["Mailbox"].ToString();
+                    string userAcc = rowForwarding["UserAccount"].ToString();
+
+                    foreach (DataRow rowGroupMembers in dataTable.Rows)
+                    {
+                        if (rowGroupMembers["AccessRights"].ToString() == "GroupMember" && rowGroupMembers["Mailbox"].ToString() == dlGroup)
+                        {
+                            var rowAuth = dataTableTmp.NewRow();
+                            rowAuth["UserAccount"] = rowGroupMembers["UserAccount"];
+                            rowAuth["Mailbox"] = userAcc + " To " + dlGroup;
+                            rowAuth["AccessRights"] = "MailboxForwardingToGroup";
+                            rowAuth["InheritanceType"] = "";
+                            dataTableTmp.Rows.Add(rowAuth);
+                        }
+                    }
+                }
+            }
+
+            dataTable.Merge(dataTableTmp);
         }
 
         // ***********************
